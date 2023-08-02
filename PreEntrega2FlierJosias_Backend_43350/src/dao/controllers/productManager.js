@@ -57,7 +57,7 @@ export default class ProductManager {
     }
 
     async #validateProduct(title, description, price, thumbnail, code, stock) {
-        if (!title || !description || !price || !thumbnail || !code || !stock) {
+        if (!title || !description || !price || !code || !stock) {
             this.#error = `[${title}]: Datos Incompletos`;
         } else {
             const allProducts = await this.getProducts();
@@ -76,7 +76,7 @@ export default class ProductManager {
             try {
                 const products = await this.getProducts()
                 const newProductId = await this.#generateId();
-                products.push({id: newProductId, title, description, price, thumbnail, code, stock,  status: true,})
+                products.push({id: newProductId, title, description, price, thumbnail: thumbnail || [], code, stock, category: "Libros",  status: true,})
                 await fs.promises.writeFile(this.#path, JSON.stringify(products, null, '\t'))
                 return { error: null }; // Devuelvo un objeto con la propiedad error como null
             } catch (error) {
