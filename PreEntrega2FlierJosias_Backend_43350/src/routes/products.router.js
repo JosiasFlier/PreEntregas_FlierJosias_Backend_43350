@@ -1,114 +1,137 @@
 import { Router } from "express";
-import ProductManager from "../dao/controllers/productManager.js";
+import productModel  from "../models/products.model.js"
 
 const router = Router();
 
-const productManager = new ProductManager();
 
 
 // http://localhost:8080/products/ con limit (http://localhost:8080/products?limit=5)
 router.get("/", async (req, res) => {
-    const books = await productManager.getProducts();
-    const limit = req.query.limit;
-    if (!limit) {
-        res.status(200).json(books);
-    } else {
-        let prodLimit = books.slice(0, limit);
-        res.status(200).json(prodLimit);
+    console.log("¡router.get!"); // Imprime un mensaje en la consola
+                    
+    try {
+        // Extrae parámetros de consulta de la solicitud
+        const limit = req.query.limit || 10 // Límite de resultados por página (por defecto 10)
+        const page = req.query.page || 1 // Página actual (por defecto 1)
+        const filterOptions = {} // Objeto para opciones de filtrado
+
+        // Si el parámetro 'stock' está presente en la consulta, se agrega a las opciones de filtrado
+        if (req.query.stock) filterOptions.stock = req.query.stock
+        // Si el parámetro 'category' está presente en la consulta, se agrega a las opciones de filtrado
+        if (req.query.category) filterOptions.category = req.query.category
+
+        // Objeto para opciones de paginación
+        const paginateOptions = { limit, page }
+
+        // Si el parámetro 'sort' es 'asc', se ordenan los resultados en orden ascendente por precio
+        if (req.query.sort === "asc") paginateOptions.sort = { price: 1 }
+        // Si el parámetro 'sort' es 'desc', se ordenan los resultados en orden descendente por precio
+        if (req.query.sort === "desc") paginateOptions.sort = { price: -1 }
+
+        // Realiza una consulta a la base de datos utilizando el modelo de producto y las opciones definidas
+        const result = await productModel.paginate(filterOptions, paginateOptions)
+
+        // Construye una respuesta JSON con los resultados y detalles de paginación
+        res.status(200).json({
+            status: "success",
+            payload: result.docs, // Array de productos obtenidos
+            totalPages: result.totalPages, // Número total de páginas
+            prevPage: result.prevPage, // Página anterior
+            nextPage: result.nextPage, // Página siguiente
+            page: result.page, // Página actual
+            hasPrevPage: result.hasPrevPage, // Indica si hay una página anterior
+            hasNextPage: result.hasNextPage, // Indica si hay una página siguiente
+            prevLink: result.hasPrevPage
+                ? `/api/products?limit=${limit}&page=${result.prevPage}`
+                : null, // Enlace a la página anterior si existe
+            nextLink: result.hasNextPage
+                ? `/api/products?limit=${limit}&page=${result.nextPage}`
+                : null, // Enlace a la página siguiente si existe
+        })
+    } catch (error) {
+        console.log("Error al leer el archivo:", error) 
+        res.status(500).json({ error: "Error al leer el archivo" })
     }
 });
 
-// //endpoint para leer un solo producto a partir de su ID
 router.get("/:pid", async (req, res) => {
-    const books = await productManager.getProducts();
-    const id = req.params.pid;
-    const productId = books.find((item) => item.id == id);
-    if (!productId) {
-        return res.status(404).json({ Error: "El libro no existe" });
-    } else {
-        res.status(200).json(productId);
-    }
-});
-
-// //endpoint para crear a un nuevo producto
-router.post("/", async (req, res) => {
-    const { title, description, price, thumbnail, code, stock } = req.body;
-    try {
-        const result = await productManager.addProduct(
-            title,
-            description,
-            price,
-            thumbnail,
-            code,
-            stock
-        );
-        if (result.error) {
-            // Se ejecuta si hay un error de validación
-            res.status(400).json({ error: result.error });
+    try{
+        const id = req.params.pid
+        console.log(id)
+        const product = await productModel.findById(id).lean().exec()
+        if (product) {
+            res.status(200).json(product)
         } else {
-            // Se ejecuta si el producto se agrega correctamente
-            const products = await productManager.getProducts(); // Obtengo los productos actualizados
-            req.app.get("socketio").emit("updatedProducts", products);
-
-            res.status(201).json({ message: "Producto agregado con éxito" });
+            res.status(404).json({ error: 'producto no encontrado'})
         }
-    } catch (error) {
-        console.error("Error al agregar el producto:", error);
-        res.status(500).json({ error: "Error al agregar el producto" });
+    } catch (err) {
+        console.log("Error al leer el producto", err)
+        res.status(500).json({status: 'error', error: err.message})
     }
 });
 
-//endpoint para actualizar los datos de un producto
-router.put("/:id", async (req, res) => {
-    const id = req.params.id;
-    const newData = req.body;
+router.post("/", async (req, res) => {
     try {
-        const books = await productManager.getProducts();
-        const productId = books.find((item) => item.id == id);
-        if (!productId) {
-            return res.status(404).json({ Error: "El libro no existe" });
-        }
+        const product = req.body //Obtiene los datos del producto
 
-        await productManager.updateProduct(id, newData);
-
-        const products = await productManager.getProducts(); // Obtengo los productos actualizados
+        // Crea el producto nuevo
+        const addProduct = await productModel.create(product)
+        const products = await productModel.find().lean().exec()
         req.app.get("socketio").emit("updatedProducts", products);
-
-        res.status(200).json({ message: "Producto actualizado con éxito" });
-    } catch (error) {
-        console.error("Error al eliminar el producto:", error);
-        res.status(500).json({ error: "Error al eliminar el producto" });
+        res.status(201).json({ status: "success", payload: addProduct });
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({ status: "Error al crear el producto", error: err.message })
     }
 });
 
-//endpoint para eliminar un producto
+router.put("/:pid", async (req, res) => {
+    try {
+        const pid = req.params.pid // Obtengo el id
+        const newData = req.body // Obtengo los nuevos datos del producto
+
+        // Actualiza el producto con el ID dado y devuelve el producto actualizado (new: true)
+        const updatedProducts = await productModel.findByIdAndUpdate(pid, newData, { new: true }).lean().exec()
+        
+        // Si el producto no existe, devuelve un error 404
+        if (!updatedProducts) return res.status(404).json({error: `producto con ID: '${pid}' no encontrado`})
+        
+        // Busca todos los productos actualizados para enviarlos a través de Socket.io
+        const products = await productModel.find().lean().exec()
+
+        // Emite un evento de Socket.io para informar sobre los productos actualizados
+        req.app.get("socketio").emit("updatedProducts", products)
+        res.status(201).json({ status: "success", payload: updatedProducts })
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({ status: "Error al actualizar el producto", error: err.message })
+    }
+})
+
 router.delete("/:pid", async (req, res) => {
-    const id = req.params.pid; //obtengo el di del producto a eliminar
     try {
-        const books = await productManager.getProducts();
-        const productId = books.find((item) => item.id == id);
-        if (!productId) {
-            return res.status(404).json({ Error: "El libro no existe" });
-        }
+        const pid = req.params.pid // Obtengo el id
 
-        await productManager.deleteProductById(id);
+        // Elimina el producto con el id (pid)
+        const deleteProduct = await productModel.findByIdAndDelete(pid)
 
-        const products = await productManager.getProducts(); // Obtengo los productos actualizados
-        req.app.get("socketio").emit("updatedProducts", products);
-        res.status(200).json({ message: "Producto eliminado con éxito" });
-    } catch (error) {
-        console.error("Error al eliminar el producto:", error);
-        res.status(500).json({ error: "Error al eliminar el producto" });
+        if (!deleteProduct)  return res.status(404).json({ error: `Producto con ID: '${pid} no encontrado` })
+
+        // Busca todos los productos actualizados para enviarlos a través de Socket.io
+        const products = await productModel.find().lean().exec()
+
+        // Emite un evento de Socket.io para informar sobre los productos actualizados
+        req.app.get("socketio").emit("updatedProducts", products)
+        res.status(201).json({ status: "Producto eliminado con éxito", payload: deleteProduct })
+
+    } catch (err) {
+        console.log(err)
+        res.status(500).json({ status: "Error al eliminar el producto", error: err.message })
     }
+
 });
 
 export default router;
 
-// {
-//     "title": "LIBRO DE PRUEBA",
-//     "description": "soy un libro de prueba",
-//     "price": 9999,
-//     "thumbnail": "https://images.cdn1.buscalibre.com/fit-in/360x360/87/da/87da3d378f0336fd04014c4ea153d064.jpg",
-//     "code": 1002,
-//     "stock": 10
-// }
+
+

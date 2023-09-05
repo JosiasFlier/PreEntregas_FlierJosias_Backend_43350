@@ -23,3 +23,14 @@ mongoose.set('strictQuery', false) //deshabilito el modo estricto solo para las 
 const productModel = mongoose.model(productsCollection, productSchema)
 
 export default productModel
+
+
+// {
+//         "title": "LIBRO DE PRUEBA",
+//         "description": "soy un libro de prueba",
+//         "price": 9999,
+//         "thumbnails": ["https://images.cdn1.buscalibre.com/fit-in/360x360/87/da/87da3d378f0336fd04014c4ea153d064.jpg"],
+//         "code": 1002,
+//         "stock": 10,
+//         "category": "Prueba" 
+// }

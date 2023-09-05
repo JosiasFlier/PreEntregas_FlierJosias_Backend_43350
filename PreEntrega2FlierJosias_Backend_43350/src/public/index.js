@@ -104,13 +104,14 @@ socket.on("updatedProducts", (products) => {
         const row = document.createElement("tr");
         row.innerHTML = `
             <td>${item.title}</td>
+            <td><img src="${item.thumbnails[0]}" style="max-width: 60px;"></td>
             <td>${item.description}</td>
             <td>${item.price}</td>
             <td>${item.code}</td>
             <td>${item.category}</td>
             <td>${item.stock}</td>
             <td>
-                <button class="btn btn-danger" onclick="deleteProduct(${item.id})">❌</button>
+                <button class="btn btn-danger" onclick="deleteProduct('${item._id}')">❌</button>
             </td>
         `;
         tbody.appendChild(row);

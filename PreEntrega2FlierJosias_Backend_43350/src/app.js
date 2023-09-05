@@ -7,7 +7,7 @@ import { Server } from "socket.io";
 import mongoose from "mongoose";
 import { PORT, MONGO_DB_NAME, MONGO_URI } from "./utils.js";
 
-import productsModel from "./dao/models/products.model.js";
+// import productsModel from "./models/products.model.js";
 
 
 const app = express();
@@ -40,7 +40,8 @@ try {
     
     app.use("/api/products", productsRouter);
     app.use("/api/carts", cartRouter);
-    app.use("/home", viewsRouter);
+    // Ruta para renderizar las vistas de handlebars
+    app.use("/products", viewsRouter);
     
     
     // 'connection' palabra reservada, es un evento, para detectar
