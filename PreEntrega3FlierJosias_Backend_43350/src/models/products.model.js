@@ -26,7 +26,7 @@ export default productModel
 
 
 // {
-//         "title": "LIBRO DE PRUEBA",
+//         "title": "LIBRO DE PRUEBA 3ra preentrega",
 //         "description": "soy un libro de prueba",
 //         "price": 9999,
 //         "thumbnails": ["https://images.cdn1.buscalibre.com/fit-in/360x360/87/da/87da3d378f0336fd04014c4ea153d064.jpg"],

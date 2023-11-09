@@ -18,6 +18,7 @@ const cartSchema = mongoose.Schema({
 
 // defino un middelware, para que cuando haya un findOne, se produzca un populate
 cartSchema.pre('findOne', function() {this.populate('products.product')})
+cartSchema.pre('find', function() {this.populate('products.product')})
 
 mongoose.set('strictQuery', false)
 
