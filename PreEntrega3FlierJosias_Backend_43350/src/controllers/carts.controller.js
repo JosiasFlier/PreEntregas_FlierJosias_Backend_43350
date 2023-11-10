@@ -52,7 +52,6 @@ export const createNewCartController = async (req, res) => {
 export const newProductForCartController = async (req, res) => {
     try {
 
-        console.log("probando capas de carritos - prueba forma 1"); // Imprime un mensaje en la consola
         // Se obtiene los CID y PID
         const cartId = req.params.cid;
         const productId = req.params.pid;
@@ -138,7 +137,7 @@ export const updateProductInCartController = async (req, res) => {
         }
 
         // Se busca y obtiene el carrito con el ID proporcionado
-        const cart = await getCartById(cartId)
+        const cart = await CartService.getByIdJSON(cartId)
 
         console.log(cart)
 
@@ -241,7 +240,6 @@ export const deleteProductInCartController = async (req, res) => {
             (item) => item.product._id.toString() === productId
         );
 
-        console.log(existingProductIndex)
 
         // Si no se encuentra el producto en el carrito, se responde con un código de estado 404 y un mensaje de error.
         if (existingProductIndex === -1) {
@@ -273,4 +271,51 @@ export const deleteProductInCartController = async (req, res) => {
     }
 }
 
+export const purchaseController = async (req, res) => {
+    try {
+        const cartId = req.params.cid
+        const cart = await CartService.getAllByIdPopulate(cartId)
+        // console.log(cart)
+
+        let totalAmount = 0 // Monto total
+        const purchasedProducts = []; // Productos que se han comprado
+
+
+        // Filtrar los productos que se pueden comprar y actualizar el monto total
+        const unprocessedProducts = cart.products.filter(item => {
+            const product = item.product;
+            if (product.stock >= item.quantity) {
+                product.stock -= item.quantity; // Actualizar stock del producto
+                totalAmount += product.price * item.quantity; // Actualizar monto total
+                purchasedProducts.push(item); // Agregar a los productos comprados
+                return false; // Producto comprado y procesado
+            }
+
+            return true; // Producto no procesado
+        });
+
+        if (purchasedProducts.length === 0) return res.status(400).json({ error: 'No se pudo realizar ninguna compra' })
+
+        // Actualizar los stocks de los productos comprados
+        await Promise.all(purchasedProducts.map(async item => {
+            const product = await ProductService.getById(item.product._id);
+            product.stock -= item.quantity;
+            await product.save();
+        }));
+
+        console.log(unprocessedProducts)
+        console.log(totalAmount)
+        console.log(purchasedProducts)
+
+
+        return res.status(200).json({
+            status: 'success',
+            message: 'Carrito comprado prueba',
+            payload: cart
+        });
+    } catch (err) {
+        console.log('Error al finalizar la compra:', err);
+        res.status(500).json({ error: 'Error en el servidor' });
+    }
+}
 

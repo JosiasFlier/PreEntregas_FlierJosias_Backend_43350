@@ -3,7 +3,7 @@ import productModel from "../models/products.model.js";
 import { ProductService } from "../services/products.service.js";
 import cartModel from "../models/carts.model.js";
 import mongoose from "mongoose";
-import { createNewCartController, deleteCartController, deleteProductInCartController, getCartByIdController, getCartsController, newProductForCartController, updateCartController, updateProductInCartController } from "../controllers/carts.controller.js";
+import { createNewCartController, deleteCartController, deleteProductInCartController, getCartByIdController, getCartsController, newProductForCartController, purchaseController, updateCartController, updateProductInCartController } from "../controllers/carts.controller.js";
 
 const router = Router();
 
@@ -12,7 +12,6 @@ router.get("/", getCartsController);
 
 // VER CARRITO SEGUN SU ID
 router.get("/:cid", getCartByIdController);
-
 
 // CREO UN NUEVO CARRITO
 router.post("/", createNewCartController);
@@ -31,6 +30,9 @@ router.delete("/:cid", deleteCartController);
 
 //RUTA PARA ELIMINAR UN PRODUCTO DEL CARRITO
 router.delete("/:cid/products/:pid", deleteProductInCartController);
+
+//RUTA PARA FINALIZAR LA COMPRA DE LOS PRODUCTOS EN EL CART
+router.get("/:cid/purchase", purchaseController)
 
 export default router;
 

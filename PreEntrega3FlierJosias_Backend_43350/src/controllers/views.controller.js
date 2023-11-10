@@ -114,7 +114,7 @@ export const realTimeProductsController = async (req, res) => {
 export const productDetailController = async (req, res) => {
     try {
         const id = req.params.pid;
-        const product = await ProductService.getById(id)
+        const product = await ProductService.getByIdViews(id)
         if (product === null) {
             return res
                 .status(404)

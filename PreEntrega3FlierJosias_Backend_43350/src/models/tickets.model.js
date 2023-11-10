@@ -22,6 +22,7 @@ const ticketSchema = new mongoose.Schema({
     },
 });
 
+// defino un middelware, para que cuando haya un findOne, se produzca un populate
 ticketSchema.pre("findOne", function () {
     this.populate("products.product");
 });
